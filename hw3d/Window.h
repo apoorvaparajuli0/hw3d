@@ -2,6 +2,7 @@
 #include "Win.h"
 #include "MyException.h"
 #include <sstream>
+#include "Keyboard.h"
 
 class Window
 {
@@ -51,6 +52,9 @@ private:
 	static LRESULT CALLBACK HandleMsgThunk(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 	LRESULT HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
+public:
+	Keyboard kbd;
+
 private:
 	int width;
 	int height;
@@ -58,3 +62,4 @@ private:
 };
 
 #define MYWND_EXCEPT(hr) Window::Exception(__LINE__, __FILE__, hr);
+#define MYWND_LAST_EXCEPT() Window::Exception(__LINE__, __FILE__, GetLastError());

@@ -1,8 +1,10 @@
 #include "MyException.h"
 
 /*
-* @param line
-* @param file
+* just our constructor for the basic exception class
+* 
+* @param line -the line number the error occurred on
+* @param file -the file the error occurred in
 */
 MyException::MyException(int line, const char* file) noexcept
 	:
@@ -11,7 +13,9 @@ MyException::MyException(int line, const char* file) noexcept
 {}
 
 /*
-*
+* gets the error type and the string we use to output
+* the complete error message and puts the into an output
+* string stream and then stores them in our buffer
 */
 const char* MyException::what() const noexcept
 {
@@ -31,7 +35,8 @@ const char* MyException::what() const noexcept
 }
 
 /*
-*
+* just returns "MyException" so we know that we're dealing with
+* our custom exception class
 */
 const char* MyException::GetType() const noexcept
 {
@@ -39,7 +44,7 @@ const char* MyException::GetType() const noexcept
 }
 
 /*
-*
+* returns the file that the exception occurred in (initialized in ctor)
 */
 const std::string& MyException::GetFile() const noexcept
 {
@@ -47,7 +52,8 @@ const std::string& MyException::GetFile() const noexcept
 }
 
 /*
-*
+* returns a stringified output string stream containing the
+* error message info
 */
 std::string MyException::GetOriginString() const noexcept
 {

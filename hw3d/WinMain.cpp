@@ -28,6 +28,14 @@ int CALLBACK WinMain(
 			//generates WM_CHAR messages out of my message
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
+
+			if (wnd.kbd.KeyIsPressed(VK_MENU))
+			{
+				MessageBox(nullptr, 
+					"Something Is Happening", 
+					"Alt Has Been Pressed",
+					 MB_OK | MB_ICONEXCLAMATION);
+			}
 		}
 
 		if (gResult == -1) {
@@ -37,6 +45,7 @@ int CALLBACK WinMain(
 		return msg.wParam;
 
 	}
+	//different cases for a MyException, std::exception or other error
 	catch (const MyException& e)
 	{
 		MessageBox(nullptr, e.what(),

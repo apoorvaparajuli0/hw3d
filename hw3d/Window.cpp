@@ -4,7 +4,8 @@
 Window::WindowClass Window::WindowClass::wndClass;
 
 /*
-* 
+* our constructor for our window class, registers
+* our window and sets up the config struct
 */
 Window::WindowClass::WindowClass() noexcept
 	:
@@ -32,7 +33,7 @@ Window::WindowClass::WindowClass() noexcept
 }
 
 /*
-*
+* destructor which unregisters our window
 */
 Window::WindowClass::~WindowClass() 
 {
@@ -40,7 +41,8 @@ Window::WindowClass::~WindowClass()
 }
 
 /*
-*
+* returns the name of our window class, stored as a member
+* variable
 */
 const char* Window::WindowClass::GetName() noexcept
 {
@@ -48,7 +50,7 @@ const char* Window::WindowClass::GetName() noexcept
 }
 
 /*
-*
+* returns an hInstance to identify our application instance
 */
 HINSTANCE Window::WindowClass::GetInstance() noexcept
 {
@@ -56,23 +58,33 @@ HINSTANCE Window::WindowClass::GetInstance() noexcept
 }
 
 /*
-* @param width
-* @param height
-* @param name
+* constructor for the literal window, initializes our rectangle
+* which represents the initial window
+* 
+* @param width  -used to determine width of screen
+* @param height -used to determine height of screen
+* @param name   -the name of the window that'll appear in the
+*				 non-client region
 */
 Window::Window(int width, int height, const char* name)
 {
 	//determines window size for the client region
-	//(the actual inside of the window)
+	//used in CreateWindow to further calculate screen size
+	// 
+	//(Not sure why we're not just directly entering width and height into CreateWindow
+	//maybe related to device unit conversion)
 	RECT wr;
 	wr.left = 100;
 	wr.right = width + wr.left;
 	wr.top = 100;
 	wr.bottom = height + wr.top; 
-	AdjustWindowRect(&wr, WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU, FALSE);
 
-	throw MYWND_EXCEPT(ERROR_ARENA_TRASHED);
+	if (FAILED (AdjustWindowRect(&wr, WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU, FALSE)))
+	{
+		throw MYWND_LAST_EXCEPT();
+	}
 
+	//config settings allowing us to minimize and add captions to our rectangle
 	hWnd = CreateWindow(
 		WindowClass::GetName(), name,
 		WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU,
@@ -81,11 +93,13 @@ Window::Window(int width, int height, const char* name)
 		this
 	);
 
+	if (hWnd == nullptr) throw MYWND_LAST_EXCEPT();
+
 	ShowWindow(hWnd, SW_SHOWDEFAULT);
 }
 
 /*
-*
+* destructor for our window
 */
 Window::~Window()
 {
@@ -93,10 +107,14 @@ Window::~Window()
 }
 
 /*
-* @param hWnd
-* @param msg
-* @param wParam
-* @param lParam
+* handles message handling setup the first time we get a message
+* to our window
+* 
+* @param hWnd   -pointer to structure that contains window data I guess? 
+*                some kind of handle to our window
+* @param msg    -message we're sending
+* @param wParam -not important here
+* @param lParam -described below
 */
 LRESULT CALLBACK Window::HandleMsgSetup(HWND hWnd, UINT msg,
 	WPARAM wParam, LPARAM lParam)
@@ -130,10 +148,14 @@ LRESULT CALLBACK Window::HandleMsgSetup(HWND hWnd, UINT msg,
 }
 
 /*
-* @param hWnd
-* @param msg
-* @param wParam
-* @param lParam
+* basically just a middleman function to get a pointer to our
+* actual window which we stored in the WinAPI as user data, and
+* then to invoke the actual message handler
+* 
+* @param hWnd   -handle to our window
+* @param msg    -our message
+* @param wParam -not imporant here
+* @param lParam -not important here
 */
 LRESULT CALLBACK Window::HandleMsgThunk(HWND hWnd, UINT msg, 
 	WPARAM wParam, LPARAM lParam)
@@ -147,10 +169,13 @@ LRESULT CALLBACK Window::HandleMsgThunk(HWND hWnd, UINT msg,
 }
 
 /*
-* @param hWnd
-* @param msg
-* @param wParam
-* @param lParam
+* our actual message handler, we switch between message types and
+* behave accordingly
+* 
+* @param hWnd   -handle to our window
+* @param msg    -message
+* @param wParam -is the keyboard input code
+* @param lParam -contains bitflags for msgInput handling
 */
 LRESULT Window::HandleMsg(HWND hWnd, UINT msg, 
 	WPARAM wParam, LPARAM lParam) 
@@ -160,9 +185,33 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg,
 	//by switching through different msg formats and acting accordingly
 	switch (msg)
 	{
-	case WM_CLOSE:
-		PostQuitMessage(0);
-		return 0;
+		case WM_CLOSE:
+			PostQuitMessage(0);
+			return 0;
+		case WM_KILLFOCUS:
+			kbd.ClearState();
+			break;
+
+		case WM_KEYDOWN:
+		//we need to take into account syskeys
+		//because keys like alt or f10 are system
+		//keys
+		case WM_SYSKEYDOWN: 
+			//check bit 30 of lParam which will indicate to us
+			//whether the WM_KEYDOWN message is for the same key
+			//as it was in the last message
+			if (!(lParam & 0x40000000 || kbd.AutorepeatIsEnabled()))
+			{
+				kbd.OnKeyPressed(static_cast<unsigned char>(wParam));
+			}
+			break;
+		case WM_KEYUP:
+		case WM_SYSKEYUP:
+			kbd.OnKeyReleased(static_cast<unsigned char>(wParam));
+			break;
+		case WM_CHAR:
+			kbd.OnChar(static_cast<unsigned char>(wParam));
+			break;
 	}
 
 	//we don't need to call destroy window manually,
@@ -172,10 +221,12 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg,
 }
 
 /*
+* initializes our window exception class
 * 
-* @param line
-* @param file
-* @param hr
+* @param line -the line where error is thrown
+* @param file -file error is thrown
+* @param hr   -an hresult, pretty much some kind
+*              of built in windows error code/message
 */
 Window::Exception::Exception(int line, const char* file, HRESULT hr) noexcept
 	:
@@ -184,7 +235,8 @@ Window::Exception::Exception(int line, const char* file, HRESULT hr) noexcept
 {}
 
 /*
-*
+* overriden function that just returns our exception details and fills
+* up the whatBuffer with the information
 */
 const char* Window::Exception::what() const noexcept
 {
@@ -199,7 +251,7 @@ const char* Window::Exception::what() const noexcept
 }
 
 /*
-*
+* identifies exception as a window class exception
 */
 const char* Window::Exception::GetType() const noexcept
 {
@@ -207,7 +259,9 @@ const char* Window::Exception::GetType() const noexcept
 }
 
 /*
-* @param hr
+* formats our error message and returns the error message as a string
+* 
+* @param hr -takes the hresult as a parameter
 */
 std::string Window::Exception::TranslateErrorCode(HRESULT hr) noexcept
 {
@@ -217,7 +271,7 @@ std::string Window::Exception::TranslateErrorCode(HRESULT hr) noexcept
 		FORMAT_MESSAGE_ALLOCATE_BUFFER |
 		FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
 		nullptr, hr, MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL),
-		pMsgBuf, 0, nullptr
+		reinterpret_cast<LPSTR>(&pMsgBuf), 0, nullptr
 	);
 
 	if (nMsgLen == 0)
@@ -226,13 +280,15 @@ std::string Window::Exception::TranslateErrorCode(HRESULT hr) noexcept
 	}
 
 	std::string errorString = pMsgBuf;
+
+	//not sure why we're doing this
 	LocalFree(pMsgBuf);
 
 	return errorString;
 }
 
 /*
-*
+* returns the hresult which is the error code
 */
 HRESULT Window::Exception::GetErrorCode() const noexcept
 {
@@ -240,7 +296,7 @@ HRESULT Window::Exception::GetErrorCode() const noexcept
 }
 
 /*
-* 
+* returns the error string
 */
 std::string Window::Exception::GetErrorString() const noexcept
 {
