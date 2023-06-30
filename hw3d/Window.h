@@ -3,6 +3,8 @@
 #include "MyException.h"
 #include <sstream>
 #include "Keyboard.h"
+#include "Mouse.h"
+#include <optional>
 
 class Window
 {
@@ -44,6 +46,8 @@ public:
 	~Window();
 	Window(const Window&) = delete;
 	Window& operator=(const Window&) = delete;
+	void SetTitle(const std::string);
+	static std::optional<int> ProcessMessages();
 
 private:
 	//for some reason, static functions can be registered as Windows procedures, like the upper
@@ -54,6 +58,7 @@ private:
 
 public:
 	Keyboard kbd;
+	Mouse mouse;
 
 private:
 	int width;

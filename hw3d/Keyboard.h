@@ -12,6 +12,7 @@ public:
 	class Event
 	{
 	public:
+		//our keyboard event types
 		enum class Type
 		{
 			Press,
@@ -20,7 +21,9 @@ public:
 		};
 
 	private:
+		//type corresponds to the enum class above
 		Type type;
+		//code is the VK keycode of the keyboard event
 		unsigned char code;
 
 	public:
@@ -84,10 +87,17 @@ private:
 	static void TrimBuffer(std::queue<T>& buffer) noexcept;
 
 private:
+	//the number of key events supported by the windows VK_Key API thingy
 	static constexpr unsigned int nKeys = 256u;
+	//the max size of either our character or keyboard event buffer
 	static constexpr unsigned int bufferSize = 16u;
+	//our autorepeat enabled/disabled tracker
 	bool autorepeatEnabled = false;
+	//bitset that indicates whether our VK events that we can use
+	//to index into the bitset are happening or not
 	std::bitset<nKeys> keystates;
+	//queue of keyboard events
 	std::queue<Event> keybuffer;
+	//queue of character input
 	std::queue<char> charbuffer;
 };

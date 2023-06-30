@@ -1,48 +1,26 @@
 #include "Window.h"
+#include "App.h"
 
 /*
 * entry point for the program (using "CALLBACK" or "WINAPI" in signature are interchangeable)
 * 
-* @param hInstance      -
-* @param hPrevInstance  -
-* @param lpCmdLine      -
-* @param nCmdShow       -
+* @param hInstance      -handle to an instance of our window I guess?
+* @param hPrevInstance  -handle to the previous instance of our window
+*                        I would imaging
+* @param lpCmdLine      -the command line that will be used for the app
+*                        passed as an LPSTR
+* @param nCmdShow       -determines how window is shown, maybe look at
+*                        ShowWindow() function docs on MSDN for more info
 */
 int CALLBACK WinMain(
 	HINSTANCE hInstance,
 	HINSTANCE hPrevInstance,
 	LPSTR	  lpCmdLine,
-	int		  nCmdShow)
+	int		  nCmdShow) 
 {
 	try
 	{
-		//can have multiple instances for multiple windows if needed
-		Window wnd(800, 300, "Test");
-
-		MSG msg;
-		BOOL gResult;
-
-		//GetMessage returns -1 if failed, or whatever return code is provided in a message if succesfull
-		while (gResult = GetMessage(&msg, nullptr, 0, 0) > 0) {
-
-			//generates WM_CHAR messages out of my message
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
-
-			if (wnd.kbd.KeyIsPressed(VK_MENU))
-			{
-				MessageBox(nullptr, 
-					"Something Is Happening", 
-					"Alt Has Been Pressed",
-					 MB_OK | MB_ICONEXCLAMATION);
-			}
-		}
-
-		if (gResult == -1) {
-			return -1;
-		}
-
-		return msg.wParam;
+		return App().Go();
 
 	}
 	//different cases for a MyException, std::exception or other error

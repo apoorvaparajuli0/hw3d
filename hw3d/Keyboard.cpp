@@ -10,7 +10,9 @@ bool Keyboard::KeyIsPressed(unsigned char keycode) const noexcept
 }
 
 /*
-*
+* reads the first "Event" off of the key buffer queue
+* and returns it as long as the keybuffer has events on
+* it
 */
 Keyboard::Event Keyboard::ReadKey() noexcept
 {
@@ -28,7 +30,8 @@ Keyboard::Event Keyboard::ReadKey() noexcept
 }
 
 /*
-*
+* returns whether our keyboard event buffer is
+* empty or not
 */
 bool Keyboard::KeyIsEmpty() const noexcept
 {
@@ -36,7 +39,10 @@ bool Keyboard::KeyIsEmpty() const noexcept
 }
 
 /*
-*
+* reads a character off of the character queue,
+* we treat characters separately from keyboard
+* events, they aren't necessarily events, they could
+* just be keyboard input into a text box
 */
 char Keyboard::ReadChar() noexcept
 {
@@ -54,7 +60,7 @@ char Keyboard::ReadChar() noexcept
 }
 
 /*
-*
+* returns whether our charbuffer is empty
 */
 bool Keyboard::CharIsEmpty() const noexcept
 {
@@ -62,7 +68,7 @@ bool Keyboard::CharIsEmpty() const noexcept
 }
 
 /*
-*
+* clears our keyboard event queue
 */
 void Keyboard::FlushKey() noexcept
 {
@@ -70,7 +76,7 @@ void Keyboard::FlushKey() noexcept
 }
 
 /*
-*
+* clears our character queue
 */
 void Keyboard::FlushChar() noexcept
 {
@@ -78,7 +84,8 @@ void Keyboard::FlushChar() noexcept
 }
 
 /*
-*
+* flushes bothe keyboard event and
+* character queues
 */
 void Keyboard::Flush() noexcept
 {
@@ -87,7 +94,7 @@ void Keyboard::Flush() noexcept
 }
 
 /*
-*
+* enables autorepeat for keyboard events
 */
 void Keyboard::EnableAutorepeat() noexcept
 {
@@ -95,7 +102,7 @@ void Keyboard::EnableAutorepeat() noexcept
 }
 
 /*
-*
+* disables autorepeat for keyboard events
 */
 void Keyboard::DisableAutorepeat() noexcept
 {
@@ -103,7 +110,7 @@ void Keyboard::DisableAutorepeat() noexcept
 }
 
 /*
-*
+* returns whether autorepeat is enabled or not
 */
 bool Keyboard::AutorepeatIsEnabled() const noexcept
 {
@@ -111,7 +118,12 @@ bool Keyboard::AutorepeatIsEnabled() const noexcept
 }
 
 /*
-*
+* indexes into our keystates bitset at the given keycode to set it's
+* status to being pressed, we then push a keyboard event initialized with
+* the appropriate enum type and keycode into our keyboard event queue and then
+* we call TrimBuffer()
+* 
+* @param keycode -virtual keycode for unique keys as provided on MSDN docs
 */
 void Keyboard::OnKeyPressed(unsigned char keycode) noexcept
 {
@@ -121,7 +133,10 @@ void Keyboard::OnKeyPressed(unsigned char keycode) noexcept
 }
 
 /*
-*
+* same as the above but it sets our keystate to false and pushes a 
+* "Released" enum type to the Event constructor
+* 
+* @param keycode -virtual keycode for a given keyboard event
 */
 void Keyboard::OnKeyReleased(unsigned char keycode) noexcept
 {
@@ -131,7 +146,9 @@ void Keyboard::OnKeyReleased(unsigned char keycode) noexcept
 }
 
 /*
-*
+* pushes a character onto our char buffer and trims
+* 
+* @param character -character that we want to push
 */
 void Keyboard::OnChar(char character) noexcept
 {
@@ -140,7 +157,7 @@ void Keyboard::OnChar(char character) noexcept
 } 
 
 /*
-*
+* clears our keystates to all be false, or 0
 */
 void Keyboard::ClearState() noexcept
 {
@@ -148,7 +165,11 @@ void Keyboard::ClearState() noexcept
 }
 
 /*
-*
+* trims down a buffer by one if they exceed the max buffer
+* size as indicated by bufferSize
+* 
+* @param buffer -templated to take both char buffers and
+*				 event buffers by reference
 */
 template<typename T>
 void Keyboard::TrimBuffer(std::queue<T>& buffer) noexcept

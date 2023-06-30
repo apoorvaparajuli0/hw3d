@@ -67,6 +67,9 @@ HINSTANCE Window::WindowClass::GetInstance() noexcept
 *				 non-client region
 */
 Window::Window(int width, int height, const char* name)
+	:
+	width(width),
+	height(height)
 {
 	//determines window size for the client region
 	//used in CreateWindow to further calculate screen size
@@ -79,9 +82,9 @@ Window::Window(int width, int height, const char* name)
 	wr.top = 100;
 	wr.bottom = height + wr.top; 
 
-	if (FAILED (AdjustWindowRect(&wr, WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU, FALSE)))
+	if ((AdjustWindowRect(&wr, WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU, FALSE)) == 0)
 	{
-		throw MYWND_LAST_EXCEPT();
+		throw MYWND_LAST_EXCEPT(); 
 	}
 
 	//config settings allowing us to minimize and add captions to our rectangle
@@ -104,6 +107,48 @@ Window::Window(int width, int height, const char* name)
 Window::~Window()
 {
 	DestroyWindow(hWnd);
+}
+
+/*
+* helper for setting title of window, used when
+* making sure keyboard/mouse input is triggering
+* events
+* 
+* @param title -title of window
+*/
+void Window::SetTitle(const std::string title)
+{
+	if (SetWindowText(hWnd, title.c_str()) == 0)
+	{
+		throw MYWND_LAST_EXCEPT();
+	}
+}
+
+std::optional<int> Window::ProcessMessages()
+{
+	MSG msg;
+
+	//we're using peekmessage instead of getmessage because
+	//it instantly returns when a message isn't received
+	//unlike getmessage which will pause everything until a 
+	//message is received
+
+	//this loop just loops through the message queue and 
+	//dispatches them
+	while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
+	{
+		//check if we have a quit message manually
+		if (msg.message == WM_QUIT)
+		{
+			return msg.wParam;
+		}
+
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
+	}
+
+	//if we're not quitting the app then return empty option
+	return {};
 }
 
 /*
@@ -212,6 +257,86 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg,
 		case WM_CHAR:
 			kbd.OnChar(static_cast<unsigned char>(wParam));
 			break;
+		case WM_MOUSEMOVE:
+		{
+			//lParam represents coordinates when
+			//passed into MAKEPOINTS which unpacks
+			//the bits to get the actual values I guess
+			const POINTS pt = MAKEPOINTS(lParam);
+
+			//check if we're in the client region of the window
+			if (pt.x >= 0 && pt.x < width && pt.y >= 0 && pt.y < height)
+			{
+				//logging mouse movement
+				mouse.OnMouseMove(pt.x, pt.y);
+
+				if (!mouse.IsInWindow())
+				{
+					//set capture will allow us to keep track of mouse
+					//position within our window
+					SetCapture(hWnd);
+					mouse.OnMouseEnter();
+				}
+			}
+			//we're not in client region of window
+			else
+			{
+				//this checks to see if either left or right mouse buttons
+				//are being pressed since wParam contains mouse info and the
+				//mk's let us know if either button is being pressed
+				//(this specifically checks to see if we're dragging the window)
+				if (wParam & (MK_LBUTTON | MK_RBUTTON))
+				{
+					mouse.OnMouseMove(pt.x, pt.y);
+				}
+				else
+				{
+					//we've truly exited the client region and we're not
+					//dragging, so we release the mouse and set it as 
+					//having left
+					ReleaseCapture();
+					mouse.OnMouseLeave();
+				}
+			}
+
+			break;
+		}
+		case WM_LBUTTONDOWN:
+		{
+			const POINTS pt = MAKEPOINTS(lParam);
+			mouse.OnLeftPressed(pt.x, pt.y);
+			break;
+		}
+		case WM_RBUTTONDOWN:
+		{
+			const POINTS pt = MAKEPOINTS(lParam);
+			mouse.OnRightPressed(pt.x, pt.y);
+			break;
+		}
+		case WM_LBUTTONUP:
+		{
+			const POINTS pt = MAKEPOINTS(lParam);
+			mouse.OnLeftReleased(pt.x, pt.y);
+			break;
+		}
+		case WM_RBUTTONUP:
+		{
+			const POINTS pt = MAKEPOINTS(lParam);
+			mouse.OnRightReleased(pt.x, pt.y);
+			break;
+		}
+		case WM_MOUSEWHEEL:
+		{
+			const POINTS pt = MAKEPOINTS(lParam);
+
+			//wParam is used as a value to calculate
+			//whether the mouse is moving up or down
+			//when passed to GET_WHEEL_DELTA_WPARAM
+			const int delta = GET_WHEEL_DELTA_WPARAM(wParam);
+			mouse.OnWheelDelta(pt.x, pt.y, delta);
+			break;
+		}
+	
 	}
 
 	//we don't need to call destroy window manually,
