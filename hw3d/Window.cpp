@@ -99,6 +99,8 @@ Window::Window(int width, int height, const char* name)
 	if (hWnd == nullptr) throw MYWND_LAST_EXCEPT();
 
 	ShowWindow(hWnd, SW_SHOWDEFAULT);
+
+	pGfx = std::make_unique<Graphics>(hWnd);
 }
 
 /*
@@ -149,6 +151,11 @@ std::optional<int> Window::ProcessMessages()
 
 	//if we're not quitting the app then return empty option
 	return {};
+}
+
+Graphics& Window::Gfx()
+{
+	return *pGfx;
 }
 
 /*

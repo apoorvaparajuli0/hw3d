@@ -5,6 +5,8 @@
 #include "Keyboard.h"
 #include "Mouse.h"
 #include <optional>
+#include <memory>
+#include "Graphics.h"
 
 class Window
 {
@@ -48,6 +50,7 @@ public:
 	Window& operator=(const Window&) = delete;
 	void SetTitle(const std::string);
 	static std::optional<int> ProcessMessages();
+	Graphics& Gfx();
 
 private:
 	//for some reason, static functions can be registered as Windows procedures, like the upper
@@ -64,6 +67,7 @@ private:
 	int width;
 	int height;
 	HWND hWnd;
+	std::unique_ptr<Graphics> pGfx;
 };
 
 #define MYWND_EXCEPT(hr) Window::Exception(__LINE__, __FILE__, hr);
